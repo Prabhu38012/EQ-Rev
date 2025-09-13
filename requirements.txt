@@ -7,3 +7,4 @@ prophet
 duckdb
 python-dotenv
 groq
+gradio

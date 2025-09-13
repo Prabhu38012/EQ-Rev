@@ -24,18 +24,23 @@ def handle_query(query):
                 if word.isdigit():
                     units = int(word)
                 elif word == "of" and i + 1 < len(words):
-                    product = words[i + 1]
+                    product = " ".join(words[i + 1:])  # Get the rest of the query as product name
                     break
             
             if units and product:
                 # Get sales data for the product
-                product_sales = sales_df[sales_df['product'] == product]
+                product_sales = sales_df[sales_df['product_name'].str.contains(product, case=False, na=False)]
                 if product_sales.empty:
-                    return f"No sales data found for product: {product}"
+                    return f"No sales data found for product containing: {product}"
                 
-                city_sales = product_sales.groupby('city')['sales'].sum().to_dict()
+                city_sales = product_sales.groupby('city_name')['units_sold'].sum().to_dict()
                 allocation = allocate_stock(units, city_sales)
-                return f"Stock allocation complete: {allocation}"
+                
+                # Format the result for better display
+                result_str = "Stock allocation complete:\n"
+                for city, units_allocated in allocation.items():
+                    result_str += f"{city}: {units_allocated} units\n"
+                return result_str
             else:
                 return "Please specify both units and product, e.g., 'Allocate 1000 units of ProductX'"
         except Exception as e:
@@ -47,7 +52,11 @@ def handle_query(query):
             risk = detect_low_stock(inventory_df, sales_df)
             if not risk:
                 return "No cities currently at risk."
-            return f"Cities at risk: {risk}"
+            
+            result_str = "Cities at risk:\n"
+            for city, product, current_stock, avg_sales in risk:
+                result_str += f"{city} - {product}: Current stock {current_stock}, Avg sales {avg_sales:.2f}\n"
+            return result_str
         except Exception as e:
             return f"Error checking stock levels: {str(e)}"
     

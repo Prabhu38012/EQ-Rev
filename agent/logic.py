@@ -11,27 +11,42 @@ def allocate_stock(units, city_sales):
     if total_sales == 0:
         # Evenly split if no sales data
         return {city: units // len(city_sales) for city in city_sales}
-    return {city: int((sales / total_sales) * units) for city, sales in city_sales.items()}
+    
+    allocation = {}
+    allocated_total = 0
+    
+    # Calculate proportional allocation for all cities except the last one
+    cities = list(city_sales.keys())
+    for i, city in enumerate(cities):
+        if i == len(cities) - 1:
+            # Last city gets the remaining units to ensure total is exactly 'units'
+            allocation[city] = units - allocated_total
+        else:
+            city_units = int((city_sales[city] / total_sales) * units)
+            allocation[city] = city_units
+            allocated_total += city_units
+            
+    return allocation
 
 def detect_low_stock(inventory_df, sales_df, threshold=0.2):
     """
     Detect cities where current inventory < threshold * avg 3-day sales.
-    :param inventory_df: DataFrame with columns [city, product, inventory]
-    :param sales_df: DataFrame with columns [city, product, sales, date]
+    :param inventory_df: DataFrame with columns [city_name, product_name, stock_quantity]
+    :param sales_df: DataFrame with columns [city_name, product_name, units_sold]
     :return: List of tuples [(city, product, current_stock, avg_sales)]
     """
     risk = []
     
     # Calculate average sales per product per city
-    avg_sales = sales_df.groupby(['city', 'product'])['sales'].mean().reset_index()
+    avg_sales = sales_df.groupby(['city_name', 'product_name'])['units_sold'].mean().reset_index()
     
     # Merge with inventory data
-    merged = pd.merge(inventory_df, avg_sales, on=['city', 'product'], how='left')
-    merged['avg_sales'] = merged['sales'].fillna(0)
+    merged = pd.merge(inventory_df, avg_sales, on=['city_name', 'product_name'], how='left')
+    merged['units_sold'] = merged['units_sold'].fillna(0)
     
     # Check for low stock
     for _, row in merged.iterrows():
-        if row['inventory'] < threshold * row['avg_sales']:
-            risk.append((row['city'], row['product'], row['inventory'], row['avg_sales']))
+        if row['stock_quantity'] < threshold * row['units_sold']:
+            risk.append((row['city_name'], row['product_name'], row['stock_quantity'], row['units_sold']))
     
     return risk

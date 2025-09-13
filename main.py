@@ -1,7 +1,6 @@
-from agent.agent import build_agent
+from agent.direct_handler import handle_query
 
 def main():
-    agent = build_agent()
     print("Quick Commerce Agent is ready! Type 'exit' to quit.")
     
     while True:
@@ -9,9 +8,8 @@ def main():
         if query.lower() in ["exit", "quit"]:
             break
         try:
-            # Use invoke instead of run with proper input format
-            response = agent.invoke({"input": query})
-            print("Agent:", response["output"])
+            response = handle_query(query)
+            print("Agent:", response)
         except Exception as e:
             print(f"Error: {str(e)}")
 
